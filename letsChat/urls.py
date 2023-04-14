@@ -37,5 +37,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('rest_authtoken.urls')),
     path('api/', include('users.urls')),
+    path('chat/',include("chat.urls"))
 ]
 

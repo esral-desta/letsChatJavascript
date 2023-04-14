@@ -1,6 +1,6 @@
 from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
-
+from .models import *
 class ChatConsumer(JsonWebsocketConsumer):
     def __init__(self,*args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,7 +20,6 @@ class ChatConsumer(JsonWebsocketConsumer):
         print("self.scope kwaRGS",self.scope['url_route']['kwargs'])        
         self.conversation_name = f"{self.scope['url_route']['kwargs']['conversation_name']}"
         self.conversation, created = Conversation.objects.get_or_create(name=self.conversation_name)
-
         async_to_sync(self.channel_layer.group_add)(
             self.conversation_name,
             self.channel_name,
@@ -30,28 +29,35 @@ class ChatConsumer(JsonWebsocketConsumer):
         print("disconnected")
         return super().disconnect(code)
 
+    def get_receiver(self):
+        usernames = self.conversation_name.split("__")
+        for username in usernames:
+            if username != self.user.username:
+                # This is the receiver
+                return User.objects.get(username=username)
 
     def receive_json(self, content, **kwargs):
         message_type = content["type"]
         if message_type == "chat_message":
 
+            message = Message.objects.create(
+                from_user=self.user,
+                to_user=self.get_receiver(),
+                content=content["message"],
+                conversation=self.conversation
+            )
+            
             async_to_sync(self.channel_layer.group_send)(
-                self.room_name,
+                self.conversation_name,
                 {
                     "type": "chat_message_echo",
                     "name": content["name"],
                     "message": content["message"],
                 },
             )
+        
         return super().receive_json(content, **kwargs)
 
     def chat_message_echo(self, event):
         self.send_json(event)
-
-
-# a = {'type': 'websocket', 'path': '/',
-#  'raw_path': b'/', 'headers': [(b'host', b'127.0.0.1:8000'),
-#   (b'user-agent', b'Mozilla/5.0 (X11; Linux x86_64; rv:107.0) Gecko/20100101 Firefox/107.0'),
-#    (b'accept', b'*/*'), (b'accept-language', b'en-US,en;q=0.5'), (b'accept-encoding', b'gzip, deflate, br'), (b'sec-websocket-version', b'13'), (b'origin', b'http://localhost:3000'), (b'sec-websocket-extensions', b'permessage-deflate'), (b'sec-websocket-key', b'he578ZpgdSjDbckoobClCg=='), (b'connection', b'keep-alive, Upgrade'), (b'sec-fetch-dest', b'websocket'), (b'sec-fetch-mode', b'websocket'), (b'sec-fetch-site', b'cross-site'), (b'pragma', b'no-cache'), (b'cache-control', b'no-cache'), (b'upgrade', b'websocket')], 'query_string': b'token=Rq2bAW9kqPkmAoWfXJC31OHs9g1QujTwQjUfI4IFKL2EqjS0u_V2wyr0LcHUXaCa', 'client': ['127.0.0.1', 36040], 'server': ['127.0.0.1', 8000], 'subprotocols': [], 'asgi': {'version': '3.0'}, 'token': 'Rq2bAW9kqPkmAoWfXJC31OHs9g1QujTwQjUfI4IFKL2EqjS0u_V2wyr0LcHUXaCa', 
-#    'user': <User: esral>, 'path_remaining': '', 'url_route': {'args': (), 'kwargs': {}}}
 

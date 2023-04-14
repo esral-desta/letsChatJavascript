@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useAuthContext } from "../hooks/useAuthContext";
-
+import {useNavigate} from "react-router-dom"
 export function Login() {
+    const navigate = useNavigate()
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const {dispatch} = useAuthContext()
@@ -24,6 +25,7 @@ export function Login() {
                 // localStorage.setItem("token",data["token"])
                 console.log("data",data);
                 dispatch({type: 'LOGIN', payload: {"token":data["token"],"username":data["user"]["username"]}})
+                navigate("/")
             })
         }
     return (
