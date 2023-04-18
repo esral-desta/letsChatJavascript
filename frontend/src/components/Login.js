@@ -13,7 +13,7 @@ export function Login() {
         console.log("form submiting")
         console.log(JSON.stringify({ username, password }));
 
-        fetch("http://127.0.0.1:8000/auth/login/",
+        fetch("http://10.240.69.155:8000/auth/login/",
             {
                 headers: {
                     'Accept': 'application/json',
